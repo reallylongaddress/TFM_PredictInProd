@@ -1,7 +1,7 @@
 ### MLFLOW configuration - - - - - - - - - - - - - - - - - - -
 
 MLFLOW_URI = "https://mlflow.lewagon.ai/"
-EXPERIMENT_NAME = "[country] [city] [user] model + version"
+EXPERIMENT_NAME = "[REMOTE] [reallylongaddress] PredictInProd + version"
 
 ### DATA & MODEL LOCATIONS  - - - - - - - - - - - - - - - - - - -
 
@@ -20,7 +20,7 @@ AWS_BUCKET_TEST_PATH = "s3://wagon-public-datasets/taxi-fare-test.csv"
 
 ### GCP Storage - - - - - - - - - - - - - - - - - - - - - -
 
-BUCKET_NAME = 'XXX'
+BUCKET_NAME = 'wagon-data-893-dimarco2'
 
 ##### Data  - - - - - - - - - - - - - - - - - - - - - - - -
 
