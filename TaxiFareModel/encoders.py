@@ -1,7 +1,37 @@
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from TaxiFareModel.utils import haversine_vectorized
+from scipy.sparse import csr_matrix
 
+class NumericOptimizer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        X_ = X.copy()
+        X_optimized = self.optimize_numierics(pd.DataFrame(X_.todense()))
+        X_optimized = csr_matrix(X_optimized.values)
+        return X_optimized
+
+    def optimize_numierics(self, df):
+
+        # in_size = df.memory_usage(index=True).sum()
+        # Optimized size here
+        for type in ["float", "integer"]:
+            l_cols = list(df.select_dtypes(include=type))
+            for col in l_cols:
+                df[col] = pd.to_numeric(df[col], downcast=type)
+                if type == "float":
+                    df[col] = pd.to_numeric(df[col], downcast="integer")
+        # out_size = df.memory_usage(index=True).sum()
+        # ratio = (1 - round(out_size / in_size, 2)) * 100
+        # GB = out_size / 1000000000
+        # if verbose:
+        #     print("RAM Reduced by {} % | {} GB".format(ratio, GB))
+        return df
 
 class TimeFeaturesEncoder(BaseEstimator, TransformerMixin):
     """

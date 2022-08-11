@@ -1,11 +1,11 @@
 import joblib
 from termcolor import colored
 import mlflow
-from TaxiFareModel.data import get_data_from_gcp, clean_data, optimize_numierics
-from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer
+from TaxiFareModel.data import get_data_from_gcp, clean_data, feature_engineering
+from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer
 from TaxiFareModel.gcp import storage_upload
 from TaxiFareModel.utils import compute_rmse
-from TaxiFareModel.params import MLFLOW_URI, EXPERIMENT_NAME, BUCKET_NAME, MODEL_VERSION, MODEL_VERSION
+from TaxiFareModel.params import MLFLOW_URI, EXPERIMENT_NAME
 from memoized_property import memoized_property
 from mlflow.tracking import MlflowClient
 from sklearn.compose import ColumnTransformer
@@ -13,7 +13,16 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+'''
+DBD TODO
 
+move preprocessing pipeline out of Trainer so data only need be parsed one time
+Add GridSearchCV
+Save best model from each GridSearchCV
+fix ML Flow
+--Log elapsed time per training
+--Log GridSearchCV Params per training
+'''
 class Trainer(object):
     def __init__(self, X, y):
         """
@@ -52,6 +61,7 @@ class Trainer(object):
 
         self.pipeline = Pipeline([
             ('preproc', preproc_pipe),
+            ('numeric_optimizer', NumericOptimizer()),
             ('linear_model', LinearRegression())
         ])
 
@@ -101,17 +111,16 @@ class Trainer(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 1000
+    N = 1_000
     df = get_data_from_gcp(nrows=N)
     print(f'df.shape 1: {df.shape}')
     df = clean_data(df)
     print(f'df.shape 2: {df.shape}')
 
-    #dbd todo augment data
+    df = feature_engineering(df)
+    print(f'df.shape 3: {df.shape}')
+    print(f'df.shape 3: {df.columns}')
 
-    #dbd todo numeric optimizer
-    df = optimize_numierics(df)
-    print(f'df.shape 4: {df.shape}')
 
     y = df["fare_amount"]
     X = df.drop("fare_amount", axis=1)
