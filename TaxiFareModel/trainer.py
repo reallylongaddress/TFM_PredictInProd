@@ -1,7 +1,7 @@
 import joblib
 from termcolor import colored
 import mlflow
-from TaxiFareModel.data import get_data_from_gcp, clean_data
+from TaxiFareModel.data import get_data_from_gcp, clean_data, optimize_numierics
 from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer
 from TaxiFareModel.gcp import storage_upload
 from TaxiFareModel.utils import compute_rmse
@@ -13,8 +13,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
-
 
 class Trainer(object):
     def __init__(self, X, y):
@@ -60,6 +58,8 @@ class Trainer(object):
     def run(self):
         self.set_pipeline()
         self.mlflow_log_param("model", "Linear")
+
+        #dbd todo: put GridSearch here
         self.pipeline.fit(self.X, self.y)
 
     def evaluate(self, X_test, y_test):
@@ -101,13 +101,25 @@ class Trainer(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 100
+    N = 1000
     df = get_data_from_gcp(nrows=N)
+    print(f'df.shape 1: {df.shape}')
     df = clean_data(df)
+    print(f'df.shape 2: {df.shape}')
+
+    #dbd todo augment data
+
+    #dbd todo numeric optimizer
+    df = optimize_numierics(df)
+    print(f'df.shape 4: {df.shape}')
+
     y = df["fare_amount"]
     X = df.drop("fare_amount", axis=1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
     # Train and save model, locally and
+
+    #dbd todo loop over different models here
+    # for model in models
     trainer = Trainer(X=X_train, y=y_train)
     trainer.set_experiment_name('xp2')
     trainer.run()
