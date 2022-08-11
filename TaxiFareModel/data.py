@@ -3,19 +3,57 @@ import numpy as np
 from math import floor
 from TaxiFareModel.utils import simple_time_tracker
 from google.cloud import storage
-from TaxiFareModel.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH
+from TaxiFareModel.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_PRED_DATA_PATH
 
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer
+from sklearn.compose import ColumnTransformer
 
 @simple_time_tracker
-def get_data_from_gcp(nrows=10000, optimize=False, **kwargs):
+def get_train_val_data_from_gcp(nrows=10000, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
     # Add Client() here
     client = storage.Client()
     path = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}"
-    print(f'get_data_from_gcp: {path}')
     df = pd.read_csv(path, nrows=nrows)
     return df
 
+def get_pred_data_from_gcp():
+    """method to get the training data (or a portion of it) from google cloud bucket"""
+    # Add Client() here
+    client = storage.Client()
+    path = f"gs://{BUCKET_NAME}/{BUCKET_PRED_DATA_PATH}"
+    df = pd.read_csv(path)
+    return df
+
+def get_preprocessing_pipeline():
+    """defines the pipeline as a class attribute"""
+    dist_pipe = Pipeline([
+        ('dist_trans', DistanceTransformer()),
+        ('stdscaler', StandardScaler())
+    ])
+    time_pipe = Pipeline([
+        ('time_enc', TimeFeaturesEncoder('pickup_datetime')),
+        ('ohe', OneHotEncoder(handle_unknown='ignore'))
+    ])
+    preproc_pipe = ColumnTransformer([
+        ('distance', dist_pipe, [
+            "pickup_latitude",
+            "pickup_longitude",
+            'dropoff_latitude',
+            'dropoff_longitude'
+        ]),
+        ('time', time_pipe, ['pickup_datetime'])
+    ], remainder="drop")
+
+    preprocessing_pipeline = Pipeline([
+        ('preproc', preproc_pipe),
+        ('numeric_optimizer', NumericOptimizer()),
+        # ('linear_model', LinearRegression())
+    ])
+
+    return preprocessing_pipeline
 
 def clean_data(df, test=False):
     unused_column = "Unnamed: 0"
@@ -80,7 +118,7 @@ def feature_engineering(df):
     df['is_airport'] = df.apply(lambda row: fe_is_airport(row, airport_radius), axis=1)
 
     # $5 bucket size, more $ higher score
-    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
+#    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
 
     #drop temporary and/or useless columns columns
     df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
@@ -152,4 +190,4 @@ def haversine_distance(df,
     return haversine_distance
 
 if __name__ == '__main__':
-    df = get_data_from_gcp()
+    df = get_train_val_data_from_gcp(100)
