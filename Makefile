@@ -95,3 +95,19 @@ clean:
 
 run_api:
 	uvicorn api.fast:app --reload  # load web server with code autoreload
+
+### DBD Added
+
+$DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220811_2
+
+docker_build:
+	docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
+
+docker_run:
+	docker run -e PORT=8000 -p 8000:8000 eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+docker_push:
+	docker push eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+gcloud_deploy:
+	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1

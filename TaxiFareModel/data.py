@@ -3,27 +3,30 @@ import numpy as np
 from math import floor
 from TaxiFareModel.utils import simple_time_tracker
 from google.cloud import storage
-from TaxiFareModel.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_PRED_DATA_PATH
-
+from TaxiFareModel import params#BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_PRED_DATA_PATH
+import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer
 from sklearn.compose import ColumnTransformer
+import io
 
 @simple_time_tracker
 def get_train_val_data_from_gcp(nrows=10000, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
     # Add Client() here
+    print(f'get_train_val_data_from_gcp: {nrows}')
     client = storage.Client()
-    path = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}"
+    path = f"gs://{params.BUCKET_NAME}/{params.BUCKET_TRAIN_DATA_PATH}"
     df = pd.read_csv(path, nrows=nrows)
+    print(f'get_train_val_data_from_gcp: {nrows}/{df.shape}')
     return df
 
 def get_pred_data_from_gcp():
     """method to get the training data (or a portion of it) from google cloud bucket"""
     # Add Client() here
     client = storage.Client()
-    path = f"gs://{BUCKET_NAME}/{BUCKET_PRED_DATA_PATH}"
+    path = f"gs://{params.BUCKET_NAME}/{params.BUCKET_PRED_DATA_PATH}"
     df = pd.read_csv(path)
     return df
 
@@ -188,6 +191,41 @@ def haversine_distance(df,
     c = 2 * np.arcsin(np.sqrt(a))
     haversine_distance = 6371 * c
     return haversine_distance
+
+def save_submission(y_pred, y_keys, estimator_name, process_start_time):
+
+    client = storage.Client()
+    # bucket = client.bucket(gcp_params.BUCKET_NAME)
+
+    y_pred = pd.concat([y_keys, pd.Series(y_pred)],axis=1)
+    y_pred.columns = ['key', 'fare_amount']
+    file_name = f'submission_{estimator_name}_{process_start_time}.csv'
+    local_file_path = params.LOCAL_STORAGE_LOCATION + file_name
+    print(f'submission local_file_path: {local_file_path}')
+
+    #save locally
+    pd.DataFrame(y_pred).to_csv(local_file_path, index=False)
+
+    #save go GCP, no need for local file save even though one occurs above
+    f = io.StringIO()
+    y_pred.to_csv(f)
+    f.seek(0)
+    client.get_bucket(params.BUCKET_NAME).blob(params.GCM_STORAGE_LOCATION + file_name).upload_from_file(f, content_type='text/csv')
+
+def save_model(model, estimator_name, process_start_time):
+    file_name = f'gcp_model_{estimator_name}_{process_start_time}.joblib'
+    local_file_path = params.LOCAL_STORAGE_LOCATION + file_name
+    print(f'model local_file_path: {local_file_path}')
+
+    joblib.dump(model, local_file_path)
+
+    client = storage.Client()
+    bucket = client.bucket(params.BUCKET_NAME)
+    blob = bucket.blob(params.GCM_STORAGE_LOCATION + file_name)
+
+    blob.upload_from_filename(params.LOCAL_STORAGE_LOCATION + file_name)
+    print(f"uploaded {params.LOCAL_STORAGE_LOCATION}{file_name} => {params.GCM_STORAGE_LOCATION}/{file_name}")
+
 
 if __name__ == '__main__':
     df = get_train_val_data_from_gcp(100)
