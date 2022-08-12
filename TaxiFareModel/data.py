@@ -7,7 +7,7 @@ from TaxiFareModel import params#BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_PRE
 import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer
+from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer, FeatureEngineering
 from sklearn.compose import ColumnTransformer
 import io
 
@@ -38,7 +38,7 @@ def get_preprocessing_pipeline():
     ])
     time_pipe = Pipeline([
         ('time_enc', TimeFeaturesEncoder('pickup_datetime')),
-        ('ohe', OneHotEncoder(handle_unknown='ignore'))
+        # ('ohe', OneHotEncoder(handle_unknown='ignore'))
     ])
     preproc_pipe = ColumnTransformer([
         ('distance', dist_pipe, [
@@ -47,11 +47,13 @@ def get_preprocessing_pipeline():
             'dropoff_latitude',
             'dropoff_longitude'
         ]),
-        ('time', time_pipe, ['pickup_datetime'])
+        ('time', time_pipe, ['pickup_datetime']),
+        ('feature_engineering', FeatureEngineering(), ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']),
     ], remainder="drop")
 
     preprocessing_pipeline = Pipeline([
         ('preproc', preproc_pipe),
+#        ('feature_engineering', FeatureEngineering()),
         ('numeric_optimizer', NumericOptimizer()),
         # ('linear_model', LinearRegression())
     ])
@@ -75,122 +77,86 @@ def clean_data(df, test=False):
     df = df[df["dropoff_longitude"].between(left=-74, right=-72.9)]
     return df
 
-def feature_engineering(df):
+# dbd:  convert this and other data steps to the pipeline so can run predict with the full preprocessing pipe
+# def feature_engineering(df):
 
-    airport_radius = 2
+#     airport_radius = 2
 
-    # manhattan distance <=> minkowski_distance(x1, x2, y1, y2, 1)
-    df['manhattan_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
-                                                  df['pickup_longitude'], df['dropoff_longitude'], 1)
-    # euclidian distance <=> minkowski_distance(x1, x2, y1, y2, 2)
-    df['euclidian_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
-                                                  df['pickup_longitude'], df['dropoff_longitude'], 2)
+#     # manhattan distance <=> minkowski_distance(x1, x2, y1, y2, 1)
+#     df['manhattan_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
+#                                                   df['pickup_longitude'], df['dropoff_longitude'], 1)
+#     # euclidian distance <=> minkowski_distance(x1, x2, y1, y2, 2)
+#     df['euclidian_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
+#                                                   df['pickup_longitude'], df['dropoff_longitude'], 2)
 
-    df['delta_lon'] = df.pickup_longitude - df.dropoff_longitude
-    df['delta_lat'] = df.pickup_latitude - df.dropoff_latitude
-    df['direction'] = calculate_direction(df.delta_lon, df.delta_lat)
+#     df['delta_lon'] = df.pickup_longitude - df.dropoff_longitude
+#     df['delta_lat'] = df.pickup_latitude - df.dropoff_latitude
+#     df['direction'] = calculate_direction(df.delta_lon, df.delta_lat)
 
-    #how are are pickup/dropoff from jfk airport?
-    jfk_center = (40.6441666667, -73.7822222222)
+#     #how are are pickup/dropoff from jfk airport?
+#     jfk_center = (40.6441666667, -73.7822222222)
 
-    df["jfk_lat"], df["jfk_lng"] = jfk_center[0], jfk_center[1]
+#     df["jfk_lat"], df["jfk_lng"] = jfk_center[0], jfk_center[1]
 
-    args_pickup =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
-                        end_lat="pickup_latitude", end_lon="pickup_longitude")
-    args_dropoff =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
-                         end_lat="dropoff_latitude", end_lon="dropoff_longitude")
+#     args_pickup =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
+#                         end_lat="pickup_latitude", end_lon="pickup_longitude")
+#     args_dropoff =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
+#                          end_lat="dropoff_latitude", end_lon="dropoff_longitude")
 
-    df['pickup_distance_to_jfk'] = haversine_distance(df, **args_pickup)
-    df['dropoff_distance_to_jfk'] = haversine_distance(df, **args_dropoff)
+#     df['pickup_distance_to_jfk'] = haversine_distance(df, **args_pickup)
+#     df['dropoff_distance_to_jfk'] = haversine_distance(df, **args_dropoff)
 
-    #how are are pickup/dropoff from lga airport?
-    lga_center = (40.776927, -73.873966)
+#     #how are are pickup/dropoff from lga airport?
+#     lga_center = (40.776927, -73.873966)
 
-    df["lga_lat"], df["lga_lng"] = lga_center[0], lga_center[1]
+#     df["lga_lat"], df["lga_lng"] = lga_center[0], lga_center[1]
 
-    args_pickup =  dict(start_lat="lga_lat", start_lon="lga_lng",
-                        end_lat="pickup_latitude", end_lon="pickup_longitude")
-    args_dropoff =  dict(start_lat="lga_lat", start_lon="lga_lng",
-                         end_lat="dropoff_latitude", end_lon="dropoff_longitude")
+#     args_pickup =  dict(start_lat="lga_lat", start_lon="lga_lng",
+#                         end_lat="pickup_latitude", end_lon="pickup_longitude")
+#     args_dropoff =  dict(start_lat="lga_lat", start_lon="lga_lng",
+#                          end_lat="dropoff_latitude", end_lon="dropoff_longitude")
 
-    # jfk = (-73.7822222222, 40.6441666667)
-    df['pickup_distance_to_lga'] = haversine_distance(df, **args_pickup)
-    df['dropoff_distance_to_lga'] = haversine_distance(df, **args_dropoff)
+#     # jfk = (-73.7822222222, 40.6441666667)
+#     df['pickup_distance_to_lga'] = haversine_distance(df, **args_pickup)
+#     df['dropoff_distance_to_lga'] = haversine_distance(df, **args_dropoff)
 
-    #which pickups/dropoffs can be considered airport runs?
-    df['is_airport'] = df.apply(lambda row: fe_is_airport(row, airport_radius), axis=1)
+#     #which pickups/dropoffs can be considered airport runs?
+#     df['is_airport'] = df.apply(lambda row: fe_is_airport(row, airport_radius), axis=1)
 
-    # $5 bucket size, more $ higher score
-#    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
+#     # $5 bucket size, more $ higher score
+# #    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
 
-    #drop temporary and/or useless columns columns
-    df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
-                     'pickup_distance_to_jfk', 'dropoff_distance_to_jfk',
-                     'pickup_distance_to_lga', 'dropoff_distance_to_lga',
-                     'delta_lon', 'delta_lat'], inplace=True)
+#     #drop temporary and/or useless columns columns
+#     df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
+#                      'pickup_distance_to_jfk', 'dropoff_distance_to_jfk',
+#                      'pickup_distance_to_lga', 'dropoff_distance_to_lga',
+#                      'delta_lon', 'delta_lat'], inplace=True)
 
-    return df
+#     return df
 
-def minkowski_distance_gps(lat1, lat2, lon1, lon2, p):
-    lat1, lat2, lon1, lon2 = [deg2rad(coordinate) for coordinate in [lat1, lat2, lon1, lon2]]
-    y1, y2, x1, x2 = [rad2dist(angle) for angle in [lat1, lat2, lon1, lon2]]
-    x1, x2 = [lng_dist_corrected(elt['x'], elt['lat']) for elt in [{'x': x1, 'lat': lat1}, {'x': x2, 'lat': lat2}]]
-    return minkowski_distance(x1, x2, y1, y2, p)
 
-def minkowski_distance(x1, x2, y1, y2, p):
-    delta_x = x1 - x2
-    delta_y = y1 - y2
-    return ((abs(delta_x) ** p) + (abs(delta_y)) ** p) ** (1 / p)
 
-def calculate_direction(d_lon, d_lat):
-    result = np.zeros(len(d_lon))
-    l = np.sqrt(d_lon**2 + d_lat**2)
-    result[d_lon>0] = (180/np.pi)*np.arcsin(d_lat[d_lon>0]/l[d_lon>0])
-    idx = (d_lon<0) & (d_lat>0)
-    result[idx] = 180 - (180/np.pi)*np.arcsin(d_lat[idx]/l[idx])
-    idx = (d_lon<0) & (d_lat<0)
-    result[idx] = -180 - (180/np.pi)*np.arcsin(d_lat[idx]/l[idx])
-    return result
+# def haversine_distance(df,
+#                        start_lat="start_lat",
+#                        start_lon="start_lon",
+#                        end_lat="end_lat",
+#                        end_lon="end_lon"):
+#     """
+#     Calculate the great circle distance between two points
+#     on the earth (specified in decimal degrees).
+#     Vectorized version of the haversine distance for pandas df
+#     Computes distance in kms
+#     """
 
-def deg2rad(coordinate):
-    return coordinate * np.pi / 180
+#     lat_1_rad, lon_1_rad = np.radians(df[start_lat].astype(float)), np.radians(df[start_lon].astype(float))
+#     lat_2_rad, lon_2_rad = np.radians(df[end_lat].astype(float)), np.radians(df[end_lon].astype(float))
+#     dlon = lon_2_rad - lon_1_rad
+#     dlat = lat_2_rad - lat_1_rad
 
-def rad2dist(coordinate):
-    earth_radius = 6371 # km
-    return earth_radius * coordinate
-
-def lng_dist_corrected(lng_dist, lat):
-    return lng_dist * np.cos(lat)
-
-def fe_is_airport(row, airport_radius):
-    if row['pickup_distance_to_lga']<airport_radius or \
-       row['dropoff_distance_to_lga']<airport_radius or \
-       row['pickup_distance_to_jfk']<airport_radius or \
-       row['dropoff_distance_to_jfk']<airport_radius :
-        return 1
-    return 0
-
-def haversine_distance(df,
-                       start_lat="start_lat",
-                       start_lon="start_lon",
-                       end_lat="end_lat",
-                       end_lon="end_lon"):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees).
-    Vectorized version of the haversine distance for pandas df
-    Computes distance in kms
-    """
-
-    lat_1_rad, lon_1_rad = np.radians(df[start_lat].astype(float)), np.radians(df[start_lon].astype(float))
-    lat_2_rad, lon_2_rad = np.radians(df[end_lat].astype(float)), np.radians(df[end_lon].astype(float))
-    dlon = lon_2_rad - lon_1_rad
-    dlat = lat_2_rad - lat_1_rad
-
-    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat_1_rad) * np.cos(lat_2_rad) * np.sin(dlon / 2.0) ** 2
-    c = 2 * np.arcsin(np.sqrt(a))
-    haversine_distance = 6371 * c
-    return haversine_distance
+#     a = np.sin(dlat / 2.0) ** 2 + np.cos(lat_1_rad) * np.cos(lat_2_rad) * np.sin(dlon / 2.0) ** 2
+#     c = 2 * np.arcsin(np.sqrt(a))
+#     haversine_distance = 6371 * c
+#     return haversine_distance
 
 def save_submission(y_pred, y_keys, estimator_name, process_start_time):
 
@@ -229,3 +195,5 @@ def save_model(model, estimator_name, process_start_time):
 
 if __name__ == '__main__':
     df = get_train_val_data_from_gcp(100)
+    pipeline = get_preprocessing_pipeline()
+    print(pipeline)
