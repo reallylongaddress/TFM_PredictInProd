@@ -6,11 +6,8 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # PARTICULAR PURPOSE.
 
 # This program built for i386-apple-darwin11.3.0
- 
-make: *** No rule to make target `all'.  Stop.
 
-
-# Make data base, printed on Thu Aug 11 12:22:59 2022
+# Make data base, printed on Sat Aug 13 14:14:22 2022
 
 # Variables
 
@@ -22,7 +19,6 @@ FILENAME = trainer
 ?F = $(notdir $?)
 # environment
 ELECTRON_NO_ATTACH_CONSOLE = 1
- 
 # environment
 HOMEBREW_NO_ANALYTICS = 1
 # automatic
@@ -60,7 +56,7 @@ VIRTUAL_ENV = /Users/dbd/.pyenv/versions/3.8.12/envs/lewagon3
 # makefile (from `Makefile', line 61)
 RUNTIME_VERSION = 2.2
 # environment
-LaunchInstanceID = 34250CF6-8A5F-4EF8-BA86-BBFA82577056
+LaunchInstanceID = 0A7AB016-4192-4615-BB93-6385623E10D5
 # environment
 ELECTRON_RUN_AS_NODE = 1
 # environment
@@ -68,7 +64,7 @@ PYENV_ROOT = /Users/dbd/.pyenv
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.FsGiSFmCUF/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.Aq9SGzkkXm/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -118,7 +114,7 @@ USER = dbd
 # makefile
 .DEFAULT_GOAL := set_project
 # environment
-TERM_SESSION_ID = EE727BA3-AA47-40F9-92CC-7DB6834321E2
+TERM_SESSION_ID = 1CF968A7-A680-4D24-8F37-A3C241B7963B
 # environment
 LESS = -R
 # automatic
@@ -152,7 +148,7 @@ MFLAGS = -Rrqp
 # environment
 TERM_PROGRAM_VERSION = 444
 # environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.25792614.25792620.AD0382D3-924D-4DB5-BB7D-FD189E998676
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.25792614.25792620.371B3B63-5B5A-41F1-9E60-F04D3907D8C4
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # makefile (from `Makefile', line 11)
@@ -179,6 +175,8 @@ FRAMEWORK = scikit-learn
 EDITOR = code
 # environment
 PAGER = less
+# makefile (from `Makefile', line 101)
+OCKER_IMAGE_NAME = dbd_lw_docker_image_20220811_2
 # environment
 LC_ALL = C
 # environment
@@ -188,7 +186,7 @@ CONDA_PYTHON_EXE = /Users/dbd/opt/miniconda3/bin/python
 # environment
 PYENV_VIRTUAL_ENV = /Users/dbd/.pyenv/versions/3.8.12/envs/lewagon3
 # environment
-SECURITYSESSIONID = 186b1
+SECURITYSESSIONID = 186b2
 # automatic
 ^F = $(notdir $^)
 # default
@@ -212,13 +210,13 @@ TERM = xterm-256color
 # makefile (from `Makefile', line 47)
 BUCKET_TRAINING_FOLDER = 'trainings'
 # environment
-VSCODE_PID = 52404
+VSCODE_PID = 2698
 # environment
 _CE_CONDA = 
 # environment
 LANG = C
 # variable set hash-table stats:
-# Load=101/1024=10%, Rehash=0, Collisions=4/125=3%
+# Load=102/1024=10%, Rehash=0, Collisions=5/127=4%
 
 # Pattern-specific Variable Values
 
@@ -226,9 +224,9 @@ LANG = C
 
 # Directories
 
-# . (device 16777229, inode 25562072): 19 files, no impossibilities.
+# . (device 16777230, inode 25562072): 21 files, no impossibilities.
 
-# 19 files, no impossibilities in 1 directories.
+# 21 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -254,11 +252,19 @@ all:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-08-11 11:53:34
+#  Last modified 2022-08-11 23:17:08
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
 # Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+docker_build:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 104):
+	docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
+	
 
 gcp_submit_training:
 #  Implicit rule search has not been done.
@@ -283,6 +289,17 @@ upload_data:
 	-@gsutil cp ${LOCAL_PATH} gs://${BUCKET_NAME}/${BUCKET_FOLDER}/${BUCKET_FILE_NAME}
 	
 
+gcloud_deploy:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 113):
+ 
+make: *** No rule to make target `all'.  Stop.
+
+	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1
+	
+
 set_project:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
@@ -296,6 +313,14 @@ set_project:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
+
+docker_run:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 107):
+	docker run -e PORT=8000 -p 8000:8000 eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+	
 
 create_bucket:
 #  Implicit rule search has not been done.
@@ -325,7 +350,6 @@ run_locally:
 	@python -m ${PACKAGE_NAME}.${FILENAME}
 	
 
- 
 run_api:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
@@ -334,8 +358,16 @@ run_api:
 	uvicorn api.fast:app --reload  # load web server with code autoreload
 	
 
+docker_push:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 110):
+	docker push eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+	
+
 # files hash-table stats:
-# Load=11/1024=1%, Rehash=0, Collisions=0/23=0%
+# Load=15/1024=1%, Rehash=0, Collisions=0/27=0%
 # VPATH Search Paths
 
 # No `vpath' search paths.
@@ -347,6 +379,6 @@ run_api:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Thu Aug 11 12:22:59 2022
+# Finished Make data base on Sat Aug 13 14:14:22 2022
 
  

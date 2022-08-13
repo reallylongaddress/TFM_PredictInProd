@@ -7,12 +7,11 @@ from TaxiFareModel import params
 # from TaxiFareModel.data import get_train_val_data_from_gcp, clean_data, feature_engineering, get_preprocessing_pipeline
 # from TaxiFareModel.gcp import storage_upload
 from TaxiFareModel.utils import compute_rmse
-from TaxiFareModel.params import MLFLOW_URI, EXPERIMENT_NAME
+from TaxiFareModel.params import MLFLOW_URI#, EXPERIMENT_NAME
 from memoized_property import memoized_property
 from mlflow.tracking import MlflowClient
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
-
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression, SGDRegressor
@@ -155,11 +154,9 @@ class Trainer(object):
     # @memoized_property
     def get_mlflow_experiment_id(self):
         try:
-            A = self.mlflow_client.create_experiment(params.EXPERIMENT_NAME)
-            return A
+            return self.mlflow_client.create_experiment(params.EXPERIMENT_NAME)
         except BaseException:
-            B = self.mlflow_client.get_experiment_by_name(params.EXPERIMENT_NAME).experiment_id
-            return B
+            return self.mlflow_client.get_experiment_by_name(params.EXPERIMENT_NAME).experiment_id
 
     @memoized_property
     def mlflow_run(self):
@@ -174,7 +171,7 @@ class Trainer(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 1_000
+    N = 100_000
     df = data.get_train_val_data_from_gcp(nrows=N)
     X_pred = data.get_pred_data_from_gcp()
 
@@ -182,21 +179,10 @@ if __name__ == "__main__":
     X_pred = data.clean_data(X_pred)
     X_pred_keys = X_pred["key"]
 
-    # df = data.feature_engineering(df)
-    # X_pred = data.feature_engineering(X_pred)
-
     X = df.drop("fare_amount", axis=1)
     y = df["fare_amount"]
-
-
-    print(f'X: {type(X)}')
-    print(f'X: {X.shape}')
-    print(f'X: {X.columns}')
-    print(f'X_pred: {type(X_pred)}')
-    print(f'X_pred: {X_pred.shape}')
-    print(f'X_pred: {X_pred.columns}')
     preprocessing_pipeline = data.get_preprocessing_pipeline()
-    print(f'preprocessing_pipeline: {type(preprocessing_pipeline)}')
+
     X_train_preprocessed = preprocessing_pipeline.fit_transform(X)
     X_pred_preprocessed = preprocessing_pipeline.transform(X_pred)
 

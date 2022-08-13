@@ -53,9 +53,7 @@ def get_preprocessing_pipeline():
 
     preprocessing_pipeline = Pipeline([
         ('preproc', preproc_pipe),
-#        ('feature_engineering', FeatureEngineering()),
         ('numeric_optimizer', NumericOptimizer()),
-        # ('linear_model', LinearRegression())
     ])
 
     return preprocessing_pipeline
@@ -167,7 +165,7 @@ def save_submission(y_pred, y_keys, estimator_name, process_start_time):
     y_pred.columns = ['key', 'fare_amount']
     file_name = f'submission_{estimator_name}_{process_start_time}.csv'
     local_file_path = params.LOCAL_STORAGE_LOCATION + file_name
-    print(f'submission local_file_path: {local_file_path}')
+    # print(f'submission local_file_path: {local_file_path}')
 
     #save locally
     pd.DataFrame(y_pred).to_csv(local_file_path, index=False)
@@ -181,7 +179,7 @@ def save_submission(y_pred, y_keys, estimator_name, process_start_time):
 def save_model(model, estimator_name, process_start_time):
     file_name = f'gcp_model_{estimator_name}_{process_start_time}.joblib'
     local_file_path = params.LOCAL_STORAGE_LOCATION + file_name
-    print(f'model local_file_path: {local_file_path}')
+    # print(f'model local_file_path: {local_file_path}')
 
     joblib.dump(model, local_file_path)
 
@@ -190,10 +188,10 @@ def save_model(model, estimator_name, process_start_time):
     blob = bucket.blob(params.GCM_STORAGE_LOCATION + file_name)
 
     blob.upload_from_filename(params.LOCAL_STORAGE_LOCATION + file_name)
-    print(f"uploaded {params.LOCAL_STORAGE_LOCATION}{file_name} => {params.GCM_STORAGE_LOCATION}/{file_name}")
+    print(f"uploaded {params.LOCAL_STORAGE_LOCATION}{file_name} => {params.GCM_STORAGE_LOCATION}{file_name}")
 
 
 if __name__ == '__main__':
     df = get_train_val_data_from_gcp(100)
     pipeline = get_preprocessing_pipeline()
-    print(pipeline)
+    # print(pipeline)

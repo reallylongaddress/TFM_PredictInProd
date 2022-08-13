@@ -100,7 +100,7 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        print(X)
+        # print(X)
         X_ = X.copy()
         # X_optimized = self.feature_engineering(pd.DataFrame(X_.todense()))
         # df_ = pd.DataFrame(X_.todense())
@@ -113,7 +113,7 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
 
         airport_radius = 2
 
-        print(f'feature_engineering: {df.columns}')
+        # print(f'feature_engineering: {df.columns}')
         # manhattan distance <=> minkowski_distance(x1, x2, y1, y2, 1)
         df['manhattan_dist'] = self.minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
                                                     df['pickup_longitude'], df['dropoff_longitude'], 1)
@@ -129,20 +129,16 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         jfk_center = (40.6441666667, -73.7822222222)
 
         df["jfk_lat"], df["jfk_lng"] = jfk_center[0], jfk_center[1]
-        print(f'feature_engineering: {df.columns}')
-        print(f'feature_engineering: {df.head()}')
+        # print(f'feature_engineering: {df.columns}')
+        # print(f'feature_engineering: {df.head()}')
 
         args_pickup =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
                             end_lat="pickup_latitude", end_lon="pickup_longitude")
         args_dropoff =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
                             end_lat="dropoff_latitude", end_lon="dropoff_longitude")
 
-        # df['pickup_distance_to_jfk'] = self.haversine_distance(df, **args_pickup)
-        # df['dropoff_distance_to_jfk'] = self.haversine_distance(df, **args_dropoff)
-        # df['pickup_distance_to_jfk'] = self.haversine_distance(df, start_lat='jfk_lat', start_lon='jfk_lng', end_lat='pickup_latitude', end_lon='pickup_longitude')
         df['pickup_distance_to_jfk'] = self.haversine_distance(df, 'jfk_lat', 'jfk_lng', 'pickup_latitude', 'pickup_longitude')
         df['dropoff_distance_to_jfk'] = self.haversine_distance(df, 'jfk_lat', 'jfk_lng', 'dropoff_latitude', 'dropoff_longitude')
-        # df['dropoff_distance_to_jfk'] = self.haversine_distance(df, **args_dropoff)
 
         #how are are pickup/dropoff from lga airport?
         lga_center = (40.776927, -73.873966)
@@ -154,9 +150,6 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         args_dropoff =  dict(start_lat="lga_lat", start_lon="lga_lng",
                             end_lat="dropoff_latitude", end_lon="dropoff_longitude")
 
-        # jfk = (-73.7822222222, 40.6441666667)
-        # df['pickup_distance_to_lga'] = self.haversine_distance(df, **args_pickup)
-        # df['dropoff_distance_to_lga'] = self.haversine_distance(df, **args_dropoff)
         df['pickup_distance_to_lga'] = self.haversine_distance(df, 'lga_lat', 'lga_lng', 'pickup_latitude', 'pickup_longitude')
         df['dropoff_distance_to_lga'] = self.haversine_distance(df, 'lga_lat', 'lga_lng', 'dropoff_latitude', 'dropoff_longitude')
 
@@ -167,13 +160,13 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
     #    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
 
         #drop temporary and/or useless columns columns
-        # df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
-        #                 'pickup_distance_to_jfk', 'dropoff_distance_to_jfk',
-        #                 'pickup_distance_to_lga', 'dropoff_distance_to_lga',
-        #                 'delta_lon', 'delta_lat'], inplace=True)
+        df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
+                        'pickup_distance_to_jfk', 'dropoff_distance_to_jfk',
+                        'pickup_distance_to_lga', 'dropoff_distance_to_lga',
+                        'delta_lon', 'delta_lat'], inplace=True)
 
-        print(f'RETURN:  {df.columns}')
-        print(f'RETURN:  {df.head()}')
+        # print(f'RETURN:  {df.columns}')
+        # print(f'RETURN:  {df.head()}')
         return df
 
     def minkowski_distance_gps(self, lat1, lat2, lon1, lon2, p):
@@ -208,7 +201,7 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         return lng_dist * np.cos(lat)
 
     def fe_is_airport(self, row, airport_radius):
-        print(f'is_airport: {row}')
+        # print(f'is_airport: {row}')
         if row['pickup_distance_to_lga']<airport_radius or \
         row['dropoff_distance_to_lga']<airport_radius or \
         row['pickup_distance_to_jfk']<airport_radius or \
