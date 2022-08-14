@@ -10,16 +10,15 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer, NumericOptimizer, FeatureEngineering
 from sklearn.compose import ColumnTransformer
 import io
+# from sklearn.neighbors import KNeighborsRegressor
 
 @simple_time_tracker
 def get_train_val_data_from_gcp(nrows=10000, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
-    # Add Client() here
-    print(f'get_train_val_data_from_gcp: {nrows}')
     client = storage.Client()
     path = f"gs://{params.BUCKET_NAME}/{params.BUCKET_TRAIN_DATA_PATH}"
     df = pd.read_csv(path, nrows=nrows)
-    print(f'get_train_val_data_from_gcp: {nrows}/{df.shape}')
+    # print(f'get_train_val_data_from_gcp: {nrows}/{df.shape}')
     return df
 
 def get_pred_data_from_gcp():
@@ -58,7 +57,12 @@ def get_preprocessing_pipeline():
 
     return preprocessing_pipeline
 
-def clean_data(df, test=False):
+def get_full_pipeline(estimator):
+    pipeline = get_preprocessing_pipeline()
+    pipeline.steps.append(['estimator', estimator])
+    return pipeline
+
+def clean_data(df):
     unused_column = "Unnamed: 0"
     if unused_column in df.keys():
         df = df.drop(axis=1, columns=["Unnamed: 0"])
@@ -75,104 +79,24 @@ def clean_data(df, test=False):
     df = df[df["dropoff_longitude"].between(left=-74, right=-72.9)]
     return df
 
-# dbd:  convert this and other data steps to the pipeline so can run predict with the full preprocessing pipe
-# def feature_engineering(df):
-
-#     airport_radius = 2
-
-#     # manhattan distance <=> minkowski_distance(x1, x2, y1, y2, 1)
-#     df['manhattan_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
-#                                                   df['pickup_longitude'], df['dropoff_longitude'], 1)
-#     # euclidian distance <=> minkowski_distance(x1, x2, y1, y2, 2)
-#     df['euclidian_dist'] = minkowski_distance_gps(df['pickup_latitude'], df['dropoff_latitude'],
-#                                                   df['pickup_longitude'], df['dropoff_longitude'], 2)
-
-#     df['delta_lon'] = df.pickup_longitude - df.dropoff_longitude
-#     df['delta_lat'] = df.pickup_latitude - df.dropoff_latitude
-#     df['direction'] = calculate_direction(df.delta_lon, df.delta_lat)
-
-#     #how are are pickup/dropoff from jfk airport?
-#     jfk_center = (40.6441666667, -73.7822222222)
-
-#     df["jfk_lat"], df["jfk_lng"] = jfk_center[0], jfk_center[1]
-
-#     args_pickup =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
-#                         end_lat="pickup_latitude", end_lon="pickup_longitude")
-#     args_dropoff =  dict(start_lat="jfk_lat", start_lon="jfk_lng",
-#                          end_lat="dropoff_latitude", end_lon="dropoff_longitude")
-
-#     df['pickup_distance_to_jfk'] = haversine_distance(df, **args_pickup)
-#     df['dropoff_distance_to_jfk'] = haversine_distance(df, **args_dropoff)
-
-#     #how are are pickup/dropoff from lga airport?
-#     lga_center = (40.776927, -73.873966)
-
-#     df["lga_lat"], df["lga_lng"] = lga_center[0], lga_center[1]
-
-#     args_pickup =  dict(start_lat="lga_lat", start_lon="lga_lng",
-#                         end_lat="pickup_latitude", end_lon="pickup_longitude")
-#     args_dropoff =  dict(start_lat="lga_lat", start_lon="lga_lng",
-#                          end_lat="dropoff_latitude", end_lon="dropoff_longitude")
-
-#     # jfk = (-73.7822222222, 40.6441666667)
-#     df['pickup_distance_to_lga'] = haversine_distance(df, **args_pickup)
-#     df['dropoff_distance_to_lga'] = haversine_distance(df, **args_dropoff)
-
-#     #which pickups/dropoffs can be considered airport runs?
-#     df['is_airport'] = df.apply(lambda row: fe_is_airport(row, airport_radius), axis=1)
-
-#     # $5 bucket size, more $ higher score
-# #    df['fb'] = [floor(num/5)+1 for num in df['fare_amount']]
-
-#     #drop temporary and/or useless columns columns
-#     df.drop(columns=['jfk_lat', 'jfk_lng', 'lga_lat', 'lga_lng',
-#                      'pickup_distance_to_jfk', 'dropoff_distance_to_jfk',
-#                      'pickup_distance_to_lga', 'dropoff_distance_to_lga',
-#                      'delta_lon', 'delta_lat'], inplace=True)
-
-#     return df
-
-
-
-# def haversine_distance(df,
-#                        start_lat="start_lat",
-#                        start_lon="start_lon",
-#                        end_lat="end_lat",
-#                        end_lon="end_lon"):
-#     """
-#     Calculate the great circle distance between two points
-#     on the earth (specified in decimal degrees).
-#     Vectorized version of the haversine distance for pandas df
-#     Computes distance in kms
-#     """
-
-#     lat_1_rad, lon_1_rad = np.radians(df[start_lat].astype(float)), np.radians(df[start_lon].astype(float))
-#     lat_2_rad, lon_2_rad = np.radians(df[end_lat].astype(float)), np.radians(df[end_lon].astype(float))
-#     dlon = lon_2_rad - lon_1_rad
-#     dlat = lat_2_rad - lat_1_rad
-
-#     a = np.sin(dlat / 2.0) ** 2 + np.cos(lat_1_rad) * np.cos(lat_2_rad) * np.sin(dlon / 2.0) ** 2
-#     c = 2 * np.arcsin(np.sqrt(a))
-#     haversine_distance = 6371 * c
-#     return haversine_distance
-
 def save_submission(y_pred, y_keys, estimator_name, process_start_time):
 
-    client = storage.Client()
-    # bucket = client.bucket(gcp_params.BUCKET_NAME)
+    y_keys = pd.DataFrame(y_keys)
+    y_keys = y_keys.reset_index(drop=True)
+    y_pred_submission = pd.concat([y_keys, pd.Series(y_pred)],axis=1)
+    y_pred_submission.columns = ['key', 'fare_amount']
 
-    y_pred = pd.concat([y_keys, pd.Series(y_pred)],axis=1)
-    y_pred.columns = ['key', 'fare_amount']
+    client = storage.Client()
+
     file_name = f'submission_{estimator_name}_{process_start_time}.csv'
     local_file_path = params.LOCAL_STORAGE_LOCATION + file_name
-    # print(f'submission local_file_path: {local_file_path}')
 
     #save locally
-    pd.DataFrame(y_pred).to_csv(local_file_path, index=False)
+    pd.DataFrame(y_pred_submission).to_csv(local_file_path, index=False)
 
     #save go GCP, no need for local file save even though one occurs above
     f = io.StringIO()
-    y_pred.to_csv(f)
+    y_pred_submission.to_csv(f)
     f.seek(0)
     client.get_bucket(params.BUCKET_NAME).blob(params.GCM_STORAGE_LOCATION + file_name).upload_from_file(f, content_type='text/csv')
 
@@ -194,4 +118,3 @@ def save_model(model, estimator_name, process_start_time):
 if __name__ == '__main__':
     df = get_train_val_data_from_gcp(100)
     pipeline = get_preprocessing_pipeline()
-    # print(pipeline)

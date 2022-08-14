@@ -98,7 +98,7 @@ run_api:
 
 ### DBD Added
 
-$DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220811_2
+$DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220811_3
 
 docker_build:
 	docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .

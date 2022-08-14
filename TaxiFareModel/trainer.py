@@ -1,125 +1,184 @@
-# import joblib
-from termcolor import colored
-import mlflow
-from time import time
-from TaxiFareModel import data
-from TaxiFareModel import params
-# from TaxiFareModel.data import get_train_val_data_from_gcp, clean_data, feature_engineering, get_preprocessing_pipeline
-# from TaxiFareModel.gcp import storage_upload
-from TaxiFareModel.utils import compute_rmse
-from TaxiFareModel.params import MLFLOW_URI#, EXPERIMENT_NAME
-from memoized_property import memoized_property
-from mlflow.tracking import MlflowClient
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+'''
+TODO
 
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import LinearRegression, SGDRegressor
-from sklearn.neighbors import KNeighborsRegressor
+Submit build to kaggle
 
-# import sys
+uncomment
+# ('ohe', OneHotEncoder(handle_unknown='ignore'))
+
+Submit build to kaggle
+
+Build Docker image
+
+Run docker image locally
+Publish docker image
+--hit docker image from vs code
+--hit docker image from notebook
+
+
+PUsh docker image to GCP
+Publish docker image
+--hit docker image from vs code
+--hit docker image from notebook
+
+build web FE
+push web FE to Heroku
+
+Improve projections
+--export DF and optimize
+--Try Neural Network
+
+'''
+
+
 import os
 import platform
+from time import time
+# import pandas as pd
 
-class Trainer(object):
-    def __init__(self, X_train, X_val, y_train, y_val, X_pred, X_pred_keys):
+import mlflow
+from mlflow.tracking import MlflowClient
+# from termcolor import colored
+
+from TaxiFareModel import data
+from TaxiFareModel import params
+from TaxiFareModel.utils import compute_rmse
+from TaxiFareModel.params import MLFLOW_URI
+
+from memoized_property import memoized_property
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, SGDRegressor, Lasso, Ridge, ElasticNet
+
+class Trainer2(object):
+    def __init__(self, num_train_rows=1_000):
         """
             X: pandas DataFrame
             y: pandas Series
         """
-
         self.run_start_time = round(time(), 0)
-
-        self.pipeline = None
-        self.X_train = X_train
-        self.y_train = y_train
-        self.X_val = X_val
-        self.y_val = y_val
-        self.X_pred = X_pred
-        self.X_pred_keys = X_pred_keys
-
-        # print(X_train.shape, y_train.shape, X_val.shape, y_val.shape, X_pred.shape)
-        # print(type(X_train), type(y_train), type(X_val), type(y_val), type(X_pred))
-
-        # for MLFlow
-        # self.experiment_name = data.EXPERIMENT_NAME
-
-    # def set_experiment_name(self, experiment_name):
-    #     '''defines the experiment name for MLFlow'''
-    #     self.experiment_name = experiment_name
+        self.mlflow_experiment_id = self.get_mlflow_experiment_id()
+        self.num_train_rows = num_train_rows
 
     def run(self):
 
-        self.mlflow_experiment_id = self.get_mlflow_experiment_id()
+        df = data.get_train_val_data_from_gcp(nrows=self.num_train_rows)
+        X_pred = data.get_pred_data_from_gcp()
+
+        X = data.clean_data(df)
+
+        pred_data_keys = X_pred["key"].copy()
+
+        X = df.drop("fare_amount", axis=1)
+        y = df["fare_amount"]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+
+        #dbd undo this hack
+        self.X_test = X_test
+        self.y_test = y_test
 
         params = {
             'estimators': {
                 'knn':{
                     'hyperparams':{
-                        'n_neighbors':[25,50,100],
-                        'n_jobs':[-1],
+                        'estimator__n_neighbors':[10],#,25,100],
                     },
                 },
-                'linear':{
-                    'hyperparams':{
-                        'n_jobs':[-1],
-                    }
-                },
+                # 'linear':{
+                #     'hyperparams':{
+                #         'estimator__n_jobs':[-1],
+                #     }
+                # },
+                # 'lasso':{
+                #     'hyperparams':{
+                #         'estimator__alpha':[1],
+                #         'estimator__max_iter':[1000,5000,10000],
+                #         'estimator__tol':[1e-4,1e-2,1],
+                #         'estimator__selection':['cyclic','random'],
+                #     }
+                # },
+                # 'elasticnet':{
+                #     'hyperparams':{
+                #         'estimator__alpha':[1],
+                #         'estimator__l1_ratio':[.5],
+                #         'estimator__max_iter':[1000,5000,10000],
+                #         'estimator__tol':[1e-4,1e-2,1],
+                #         'estimator__selection':['cyclic','random'],
+                #     }
+                # },
+                # 'ridge':{
+                #     'hyperparams':{
+                #         'estimator__max_iter':[None],
+                #         'estimator__solver':['auto'],
+                #     }
+                # },
                 # 'sgd':{
                 #     'hyperparams':{
                 #         'learning_rate': ['invscaling'],
                 #     }
                 # }
             },
-            # 'nrows':1_000,
-            #'nrows':200_000,
-            # 'starttime':starttime,
-            # 'experiment_name':params.EXPERIMENT_NAME
         }
+
         for estimator_name, hyperparams in params.get('estimators').items():
 
             loop_start_time = round(time(), 0)
-            print(f'key: {estimator_name}')
 
             ml_flow_client = MlflowClient()
             ml_flow_run = ml_flow_client.create_run(self.mlflow_experiment_id)
 
             ml_flow_client.log_param(ml_flow_run.info.run_id, 'model', estimator_name)
-            ml_flow_client.log_param(ml_flow_run.info.run_id, 'train_size', f'{self.X_train.shape[0]}')
-            ml_flow_client.log_param(ml_flow_run.info.run_id, 'validate_size', f'{self.X_val.shape[0]}')
-            ml_flow_client.log_param(ml_flow_run.info.run_id, 'predict_size', f'{self.X_pred.shape[0]}')
+            ml_flow_client.log_param(ml_flow_run.info.run_id, 'train_size', f'{X_train.shape[0]}')
+            ml_flow_client.log_param(ml_flow_run.info.run_id, 'validate_size', f'{X_test.shape[0]}')
+            ml_flow_client.log_param(ml_flow_run.info.run_id, 'predict_size', f'{X_pred.shape[0]}')
+            ml_flow_client.log_param(ml_flow_run.info.run_id, 'run_start_time', f'{self.run_start_time}')
 
             ml_flow_client.log_param(ml_flow_run.info.run_id, 'os.name', os.name)
             ml_flow_client.log_param(ml_flow_run.info.run_id, 'platform.system', platform.system())
             ml_flow_client.log_param(ml_flow_run.info.run_id, 'platform.release', platform.release())
 
-            #dbd todo - this is ugly, reduce to 1 line
+            model = None
+            if estimator_name == 'knn':
+                model = KNeighborsRegressor()
+
+            elif estimator_name == 'sgd':
+                model = SGDRegressor()
+
+            elif estimator_name == 'linear':
+                model = LinearRegression()
+
+            elif estimator_name == 'lasso':
+                model = Lasso()
+
+            elif estimator_name == 'elasticnet':
+                model = ElasticNet()
+
+            elif estimator_name == 'ridge':
+                model = Ridge()
+            else:
+                raise Exception("Unknown model type")
+
+            print(f'estimator_name: {estimator_name}')
+
+            pipeline = data.get_full_pipeline(model)
+
             for param_key, param_value in hyperparams.items():
                 ml_flow_client.log_param(ml_flow_run.info.run_id, param_key, param_value)
-
-                grid = None
-                model = None
-                if estimator_name == 'knn':
-                    model = KNeighborsRegressor()
-
-                elif estimator_name == 'sgd':
-                    model = SGDRegressor()
-
-                elif estimator_name == 'linear':
-                    model = LinearRegression()
-                else:
-                    raise Exception("Unknown model type")
-
-                grid = GridSearchCV(model,
+                print(f'param_key: {param_key}, param_value: {param_value}')
+                grid = GridSearchCV(pipeline,
                                     param_grid=hyperparams.get("hyperparams"),
-                                    cv=3,
+                                    cv=2,
                                     scoring='neg_root_mean_squared_error',
                                     # return_train_score=True,
                                     verbose=1,
                                     n_jobs=-1
                                     )
 
-                grid.fit(self.X_train, self.y_train)
+                grid.fit(X_train, y_train)
 
                 ml_flow_client.log_param(ml_flow_run.info.run_id, 'best_params', grid.best_params_)
 
@@ -130,9 +189,9 @@ class Trainer(object):
                 validate_rmse = self.evaluate(best_model)
                 ml_flow_client.log_metric(ml_flow_run.info.run_id, 'validate_rmse', f'{validate_rmse}')
 
-                y_pred = best_model.predict(self.X_pred)
+                y_pred = best_model.predict(X_pred)
 
-                data.save_submission(y_pred, self.X_pred_keys, estimator_name, self.run_start_time)
+                data.save_submission(y_pred, pred_data_keys, estimator_name, self.run_start_time)
                 data.save_model(best_model, estimator_name, self.run_start_time)
 
                 loop_end_time = time()
@@ -141,8 +200,11 @@ class Trainer(object):
 
     def evaluate(self, model):
         """evaluates the pipeline on df_test and return the RMSE"""
-        y_val_pred = model.predict(self.X_val)
-        rmse = compute_rmse(y_val_pred, self.y_val)
+        y_test_pred = model.predict(self.X_test)
+
+        y_test_pred = y_test_pred.round(decimals=2)
+
+        rmse = compute_rmse(y_test_pred, self.y_test)
         return round(rmse, 2)
 
     # MLFlow methods
@@ -168,25 +230,9 @@ class Trainer(object):
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
-
 if __name__ == "__main__":
     # Get and clean data
-    N = 100_000
-    df = data.get_train_val_data_from_gcp(nrows=N)
-    X_pred = data.get_pred_data_from_gcp()
+    N = 1_000
 
-    X = data.clean_data(df)
-    X_pred = data.clean_data(X_pred)
-    X_pred_keys = X_pred["key"]
-
-    X = df.drop("fare_amount", axis=1)
-    y = df["fare_amount"]
-    preprocessing_pipeline = data.get_preprocessing_pipeline()
-
-    X_train_preprocessed = preprocessing_pipeline.fit_transform(X)
-    X_pred_preprocessed = preprocessing_pipeline.transform(X_pred)
-
-    X_train, X_test, y_train, y_test = train_test_split(X_train_preprocessed, y, test_size=0.3)
-
-    trainer = Trainer(X_train, X_test, y_train, y_test, X_pred_preprocessed, X_pred_keys)
-    trainer.run()
+    trainer2 = Trainer2(N)
+    trainer2.run()
