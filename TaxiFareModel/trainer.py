@@ -6,7 +6,7 @@ X-Submit build to kaggle
 uncomment
 # ('ohe', OneHotEncoder(handle_unknown='ignore'))
 
-Submit build to kaggle
+X-Submit build to kaggle
 
 Build Docker image
 
@@ -85,7 +85,7 @@ class Trainer2(object):
             'estimators': {
                 'knn':{
                     'hyperparams':{
-                        'estimator__n_neighbors':[10,25],
+                        'estimator__n_neighbors':[10,25, 50],
                     },
                 },
                 # 'linear':{
@@ -93,29 +93,29 @@ class Trainer2(object):
                 #         'estimator__n_jobs':[-1],
                 #     }
                 # },
-                # 'lasso':{
-                #     'hyperparams':{
-                #         'estimator__alpha':[1],
-                #         'estimator__max_iter':[1000,5000,10000],
-                #         'estimator__tol':[1e-4,1e-2,1],
-                #         'estimator__selection':['cyclic','random'],
-                #     }
-                # },
-                # 'elasticnet':{
-                #     'hyperparams':{
-                #         'estimator__alpha':[1],
-                #         'estimator__l1_ratio':[.5],
-                #         'estimator__max_iter':[1000,5000,10000],
-                #         'estimator__tol':[1e-4,1e-2,1],
-                #         'estimator__selection':['cyclic','random'],
-                #     }
-                # },
-                # 'ridge':{
-                #     'hyperparams':{
-                #         'estimator__max_iter':[None],
-                #         'estimator__solver':['auto'],
-                #     }
-                # },
+                'lasso':{
+                    'hyperparams':{
+                        'estimator__alpha':[1],
+                        'estimator__max_iter':[1000,5000,10000],
+                        'estimator__tol':[1e-4,1e-2,1],
+                        'estimator__selection':['cyclic','random'],
+                    }
+                },
+                'elasticnet':{
+                    'hyperparams':{
+                        'estimator__alpha':[1],
+                        'estimator__l1_ratio':[.5],
+                        'estimator__max_iter':[1000,5000,10000],
+                        'estimator__tol':[1e-4,1e-2,1],
+                        'estimator__selection':['cyclic','random'],
+                    }
+                },
+                'ridge':{
+                    'hyperparams':{
+                        'estimator__max_iter':[None],
+                        'estimator__solver':['auto'],
+                    }
+                },
                 # 'sgd':{
                 #     'hyperparams':{
                 #         'learning_rate': ['invscaling'],
@@ -230,7 +230,7 @@ class Trainer2(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 1000
+    N = 100_000
 
     trainer2 = Trainer2(N)
     trainer2.run()
