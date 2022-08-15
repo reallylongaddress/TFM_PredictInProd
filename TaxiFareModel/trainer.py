@@ -1,7 +1,7 @@
 '''
 TODO
 
-Submit build to kaggle
+X-Submit build to kaggle
 
 uncomment
 # ('ohe', OneHotEncoder(handle_unknown='ignore'))
@@ -85,7 +85,7 @@ class Trainer2(object):
             'estimators': {
                 'knn':{
                     'hyperparams':{
-                        'estimator__n_neighbors':[10],#,25,100],
+                        'estimator__n_neighbors':[10,25],
                     },
                 },
                 # 'linear':{
@@ -200,9 +200,7 @@ class Trainer2(object):
 
     def evaluate(self, model):
         """evaluates the pipeline on df_test and return the RMSE"""
-        y_test_pred = model.predict(self.X_test)
-
-        y_test_pred = y_test_pred.round(decimals=2)
+        y_test_pred = model.predict(self.X_test).round(decimals=2)
 
         rmse = compute_rmse(y_test_pred, self.y_test)
         return round(rmse, 2)
@@ -232,7 +230,7 @@ class Trainer2(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 1_000
+    N = 1000
 
     trainer2 = Trainer2(N)
     trainer2.run()

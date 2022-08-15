@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from math import floor
+# from math import floor
 from TaxiFareModel.utils import simple_time_tracker
 from google.cloud import storage
 from TaxiFareModel import params#BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_PRED_DATA_PATH
@@ -38,6 +38,8 @@ def get_preprocessing_pipeline():
     time_pipe = Pipeline([
         ('time_enc', TimeFeaturesEncoder('pickup_datetime')),
         # ('ohe', OneHotEncoder(handle_unknown='ignore'))
+        # ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all().
+        #does this only act on the columns changed by the previous stage?
     ])
     preproc_pipe = ColumnTransformer([
         ('distance', dist_pipe, [
@@ -48,10 +50,13 @@ def get_preprocessing_pipeline():
         ]),
         ('time', time_pipe, ['pickup_datetime']),
         ('feature_engineering', FeatureEngineering(), ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']),
+        # ('ohe', OneHotEncoder(handle_unknown='ignore'), ['dow', 'hour', 'month', 'year']),
+        # ValueError: 'dow' is not in list
     ], remainder="drop")
 
     preprocessing_pipeline = Pipeline([
         ('preproc', preproc_pipe),
+        # ('ohe', OneHotEncoder(handle_unknown='ignore')),
         ('numeric_optimizer', NumericOptimizer()),
     ])
 
