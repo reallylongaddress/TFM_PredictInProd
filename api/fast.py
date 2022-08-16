@@ -36,7 +36,23 @@ def predict(pu_dt, pu_lon, pu_lat, do_lon, do_lat, pc):
         columns = ['key', 'pickup_datetime', 'pickup_longitude', 'pickup_latitude',
                    'dropoff_longitude', 'dropoff_latitude', 'passenger_count']
         )
+    # print(f'A=====X_pred.columns: {X_pred.columns}')
+    # print(f'A=====X_pred.dtypes: {X_pred.dtypes}')
+
+    # convert strings/objects to floats
+    X_pred_float = X_pred.astype({'pickup_longitude':'float64',
+                                  'pickup_latitude':'float64',
+                                  'dropoff_longitude':'float64',
+                                  'dropoff_latitude':'float64'})
+
+    # print(f'2=====X_pred_float.columns: {X_pred_float.columns}')
+    # print(f'2=====X_pred_float_pred.dtypes: {X_pred_float.dtypes}')
 
     model = joblib.load('./model.joblib')
-    prediction = round(model.predict(X_pred)[0],2)
+    print('====Have model')
+    prediction = round(model.predict(X_pred_float)[0],2)
     return {'prediction': prediction}
+
+'''
+http://127.0.0.1:8001/predict?pu_dt=2013-07-06%2017:18:00&pu_lon=-73.950655&pu_lat=40.783282&do_lon=-73.984365&do_lat=40.269802&pc=1
+'''

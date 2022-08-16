@@ -85,7 +85,7 @@ class Trainer2(object):
             'estimators': {
                 'knn':{
                     'hyperparams':{
-                        'estimator__n_neighbors':[10,25, 50],
+                        'estimator__n_neighbors':[10,25],
                     },
                 },
                 # 'linear':{
@@ -93,29 +93,29 @@ class Trainer2(object):
                 #         'estimator__n_jobs':[-1],
                 #     }
                 # },
-                'lasso':{
-                    'hyperparams':{
-                        'estimator__alpha':[1],
-                        'estimator__max_iter':[1000,5000,10000],
-                        'estimator__tol':[1e-4,1e-2,1],
-                        'estimator__selection':['cyclic','random'],
-                    }
-                },
-                'elasticnet':{
-                    'hyperparams':{
-                        'estimator__alpha':[1],
-                        'estimator__l1_ratio':[.5],
-                        'estimator__max_iter':[1000,5000,10000],
-                        'estimator__tol':[1e-4,1e-2,1],
-                        'estimator__selection':['cyclic','random'],
-                    }
-                },
-                'ridge':{
-                    'hyperparams':{
-                        'estimator__max_iter':[None],
-                        'estimator__solver':['auto'],
-                    }
-                },
+                # 'lasso':{
+                #     'hyperparams':{
+                #         'estimator__alpha':[1],
+                #         'estimator__max_iter':[1000,5000,10000],
+                #         'estimator__tol':[1e-4,1e-2,1],
+                #         'estimator__selection':['cyclic','random'],
+                #     }
+                # },
+                # 'elasticnet':{
+                #     'hyperparams':{
+                #         'estimator__alpha':[1],
+                #         'estimator__l1_ratio':[.5],
+                #         'estimator__max_iter':[1000,5000,10000],
+                #         'estimator__tol':[1e-4,1e-2,1],
+                #         'estimator__selection':['cyclic','random'],
+                #     }
+                # },
+                # 'ridge':{
+                #     'hyperparams':{
+                #         'estimator__max_iter':[None],
+                #         'estimator__solver':['auto'],
+                #     }
+                # },
                 # 'sgd':{
                 #     'hyperparams':{
                 #         'learning_rate': ['invscaling'],
@@ -177,6 +177,8 @@ class Trainer2(object):
                                     verbose=1,
                                     n_jobs=-1
                                     )
+                # print(f'=====X_train.columns: {X_train.shape}')
+                # print(f'=====y_train.columns: {y_train.shape}')
 
                 grid.fit(X_train, y_train)
 
@@ -189,6 +191,8 @@ class Trainer2(object):
                 validate_rmse = self.evaluate(best_model)
                 ml_flow_client.log_metric(ml_flow_run.info.run_id, 'validate_rmse', f'{validate_rmse}')
 
+                print(f'B=====X_pred.columns: {X_pred.columns}')
+                print(f'B=====X_pred.dtypes: {X_pred.dtypes}')
                 y_pred = best_model.predict(X_pred)
 
                 data.save_submission(y_pred, pred_data_keys, estimator_name, self.run_start_time)
@@ -230,7 +234,7 @@ class Trainer2(object):
 
 if __name__ == "__main__":
     # Get and clean data
-    N = 100_000
+    N = 1_000
 
     trainer2 = Trainer2(N)
     trainer2.run()

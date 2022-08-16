@@ -70,7 +70,7 @@ FILENAME=trainer
 JOB_NAME=taxi_fare_training_pipeline_$(shell date +'%Y%m%d_%H%M%S')
 
 
-run_locally:
+train_locally:
 	@python -m ${PACKAGE_NAME}.${FILENAME}
 
 gcp_submit_training:
@@ -98,9 +98,12 @@ run_api:
 
 ### DBD Added
 
-$DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220811_3
+DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220815_4
 
-docker_build:
+docker_build_local:
+	docker build -t ${DOCKER_IMAGE_NAME} .
+
+docker_build_gcr:
 	docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
 
 docker_run:

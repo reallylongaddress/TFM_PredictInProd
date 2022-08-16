@@ -170,6 +170,8 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         return df
 
     def minkowski_distance_gps(self, lat1, lat2, lon1, lon2, p):
+        # print('----minkowski_distance_gps')
+        # print(f'>{lat1}<>{lat2}<>{lon1}<>{lon2}<>{p}<')
         lat1, lat2, lon1, lon2 = [self.deg2rad(coordinate) for coordinate in [lat1, lat2, lon1, lon2]]
         y1, y2, x1, x2 = [self.rad2dist(angle) for angle in [lat1, lat2, lon1, lon2]]
         x1, x2 = [self.lng_dist_corrected(elt['x'], elt['lat']) for elt in [{'x': x1, 'lat': lat1}, {'x': x2, 'lat': lat2}]]
@@ -191,7 +193,13 @@ class FeatureEngineering(BaseEstimator, TransformerMixin):
         return result
 
     def deg2rad(self, coordinate):
-        return coordinate * np.pi / 180
+        # print(f'~coordinate:>>{coordinate[0]}<<')
+        # print(f'~coordinate.shape:>>{coordinate.shape}<<')
+        # print(f'~type(coordinate):>>{type(coordinate[0])}<<')
+        # print(f'type(np.pi):>>{type(np.pi)}<<')
+        return_value = coordinate * np.pi / 180
+        # print(f'return_value:>>{return_value}<<')
+        return return_value
 
     def rad2dist(self, coordinate):
         earth_radius = 6371 # km
