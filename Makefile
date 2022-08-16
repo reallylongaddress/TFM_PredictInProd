@@ -94,23 +94,36 @@ clean:
 ##### Prediction API - - - - - - - - - - - - - - - - - - - - - - - - -
 
 run_api:
-	uvicorn api.fast:app --reload  # load web server with code autoreload
+	uvicorn api.fast:app --port=8003 --reload  # load web server with code autoreload
 
 ### DBD Added
 
-DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220815_4
+DOCKER_IMAGE_NAME=dbd_lw_docker_image_20220815_8
 
 docker_build_local:
 	docker build -t ${DOCKER_IMAGE_NAME} .
 
-docker_build_gcr:
-	docker build -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
+docker_run_local:
+	docker run -e PORT=8080 -p 8000:8080 ${DOCKER_IMAGE_NAME}
 
-docker_run:
-	docker run -e PORT=8000 -p 8000:8000 eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+docker_run_local_interactive:
+	docker run -it -e PORT=8080 -p 8000:8080 ${DOCKER_IMAGE_NAME} sh
 
-docker_push:
+#build docker image locally
+docker_build_gcr_local:
+	docker buildx build --platform linux/amd64 -t  eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} .
+
+#build docker image on GCP
+docker_build_gcr_cloud:
+	gcloud builds submit -t eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+docker_push_gcr:
 	docker push eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
-gcloud_deploy:
+docker_run_gcr_local:
+	docker run -e PORT=8080 -p 8000:8080 eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+gcloud_deploy_gcp:
 	gcloud run deploy --image eu.gcr.io/${PROJECT_ID}/${DOCKER_IMAGE_NAME} --platform managed --region europe-west1
+
+#gcloud_shutdown_gcp

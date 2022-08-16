@@ -12,4 +12,4 @@ RUN pip install numpy==1.19.2
 RUN pip install scikit-learn==0.22
 RUN pip install -r requirements.txt
 
-CMD uvicorn api.fast:app --host 0.0.0.0 --port=8000 --reload
+CMD uvicorn api.fast:app --host 0.0.0.0 --port=8080 --reload
